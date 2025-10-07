@@ -1,0 +1,6 @@
+# Local env and build artifacts
+.env
+.env.local
+.react-router
+node_modules
+dist
