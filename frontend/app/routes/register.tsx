@@ -14,7 +14,6 @@ import {
 import { Alert, AlertDescription } from "~/components/ui/alert";
 import { SectionContainer } from "~/components/ui/container";
 import { getSigner } from "~/lib/eth";
-import { Navbar } from "~/components/navbar";
 import { useTranslation } from "~/lib/i18n";
 import {
 	UserPlus,
@@ -38,6 +37,7 @@ import { useNetwork } from "~/lib/useNetwork";
 import { useWalletAction } from "~/lib/useWalletAction";
 import { onlyfhen } from "~/services/onlyfhen";
 import { Hero } from "~/components/layout/Hero";
+import { useAccount } from "wagmi";
 
 export function meta({}: Route.MetaArgs) {
 	return [
@@ -53,6 +53,7 @@ export default function Register() {
 	const { t } = useTranslation();
 	const { contractAddress } = useNetwork();
 	const { requireWallet } = useWalletAction();
+	const { address, isConnected } = useAccount();
 	const [status, setStatus] = useState<string>("");
 	const [txHash, setTxHash] = useState<string>("");
 	const [isSuccess, setIsSuccess] = useState(false);
@@ -61,6 +62,34 @@ export default function Register() {
 	const [xHandle, setXHandle] = useState("");
 	const [showProfileModal, setShowProfileModal] = useState(false);
 	const navigate = useNavigate();
+
+	// Check if user is already registered and redirect to dashboard
+	useEffect(() => {
+		let cancelled = false;
+
+		const checkRegistration = async () => {
+			if (!isConnected || !address || !contractAddress) {
+				return;
+			}
+
+			try {
+				const service = await onlyfhen(contractAddress);
+				const registered = await service.isRegistered(address);
+
+				if (!cancelled && registered) {
+					navigate("/dashboard", { replace: true });
+				}
+			} catch (error) {
+				console.error("Error checking registration:", error);
+			}
+		};
+
+		checkRegistration();
+
+		return () => {
+			cancelled = true;
+		};
+	}, [isConnected, address, contractAddress, navigate]);
 
 	const onSubmit = async (e?: FormEvent) => {
 		console.log("onSubmit", contractAddress);
@@ -194,8 +223,6 @@ export default function Register() {
 
 	return (
 		<main className="min-h-dvh">
-			<Navbar />
-
 			<Hero
 				badge={
 					<>

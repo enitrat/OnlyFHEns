@@ -13,6 +13,7 @@ import { TranslationProvider } from "~/lib/i18n";
 import { Toaster } from "react-hot-toast";
 import { WalletProvider } from "~/lib/wallet";
 import { useZamaSDK } from "~/lib/useZamaSDK";
+import { Navbar } from "~/components/navbar";
 
 export const links: Route.LinksFunction = () => [
 	{ rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -58,6 +59,7 @@ export default function App() {
 		<TranslationProvider>
 			<WalletProvider>
 				<ZamaSDKProvider>
+					<Navbar />
 					<Outlet />
 				</ZamaSDKProvider>
 			</WalletProvider>

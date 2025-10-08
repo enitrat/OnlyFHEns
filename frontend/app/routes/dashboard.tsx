@@ -13,7 +13,6 @@ import {
 	CardTitle,
 } from "~/components/ui/card";
 import { Alert, AlertDescription } from "~/components/ui/alert";
-import { Navbar } from "~/components/navbar";
 import { PageContainer, SectionContainer } from "~/components/ui/container";
 import { useTranslation } from "~/lib/i18n";
 import { getSigner } from "~/lib/eth";
@@ -36,6 +35,7 @@ import { onlyfhen } from "~/services/onlyfhen";
 import { useFHE } from "~/hooks/useFHE";
 import { useOperatorGuard } from "~/hooks/useOperatorGuard";
 import { Hero } from "~/components/layout/Hero";
+import { useBalanceStore } from "~/stores/useBalanceStore";
 
 function shortenAddress(value?: string | null, chars = 4) {
 	if (!value) return "";
@@ -59,6 +59,7 @@ export default function Dashboard() {
 	const { address: walletAddress, isConnected } = useAccount();
 	const { decrypt, encryptUint64For } = useFHE();
 	const { ensureOnlyFHEnOperator } = useOperatorGuard(contractAddress);
+	const { refetchBalance } = useBalanceStore();
 	const [amount, setAmount] = useState("");
 	const [decryptStatus, setDecryptStatus] = useState("");
 	const [decryptedValue, setDecryptedValue] = useState("");
@@ -264,6 +265,9 @@ export default function Dashboard() {
 				id: confirmToastId,
 				duration: 5000,
 			});
+
+			// Refetch balance after successful withdrawal
+			refetchBalance();
 		} catch (error: any) {
 			console.error(error);
 
@@ -284,8 +288,6 @@ export default function Dashboard() {
 
 	return (
 		<main className="min-h-dvh">
-			<Navbar />
-
 			<Hero
 				badge={t("dashboard.heroBadge")}
 				title={t("dashboard.heroTitle")}

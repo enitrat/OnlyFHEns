@@ -6,7 +6,6 @@ import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Alert, AlertDescription } from "~/components/ui/alert";
-import { Navbar } from "~/components/navbar";
 import { useTranslation } from "~/lib/i18n";
 import { toast } from "react-hot-toast";
 import { Loader2 } from "lucide-react";
@@ -19,6 +18,7 @@ import { onlyfhen } from "~/services/onlyfhen";
 import { useFHE } from "~/hooks/useFHE";
 import { useOperatorGuard } from "~/hooks/useOperatorGuard";
 import { Hero } from "~/components/layout/Hero";
+import { useBalanceStore } from "~/stores/useBalanceStore";
 
 export function meta({}: Route.MetaArgs) {
 	return [
@@ -36,6 +36,7 @@ export default function Tip() {
 	const { requireWallet } = useWalletAction();
 	const { decrypt, encryptUint64For } = useFHE();
 	const { ensureOnlyFHEnOperator } = useOperatorGuard(contractAddress);
+	const { balance: globalBalance, refetchBalance } = useBalanceStore();
 	const [creator, setCreator] = useState("");
 	const [amount, setAmount] = useState("");
 	const [status, setStatus] = useState<string>("");
@@ -44,9 +45,6 @@ export default function Tip() {
 	const [savedCreators, setSavedCreators] = useState<CreatorProfile[]>([]);
 	const [isOpen, setIsOpen] = useState(false);
 	const [query, setQuery] = useState("");
-	const [isDecryptingToken, setIsDecryptingToken] = useState(false);
-	const [decryptTokenStatus, setDecryptTokenStatus] = useState("");
-	const [decryptedTokenBalance, setDecryptedTokenBalance] = useState("");
 
 	useEffect(() => {
 		let mounted = true;
@@ -113,55 +111,6 @@ export default function Tip() {
 		return list;
 	}, [savedCreators, query]);
 
-	const handleDecryptToken = async () => {
-		setIsDecryptingToken(true);
-		setDecryptTokenStatus("");
-		setDecryptedTokenBalance("");
-
-		let fetchToastId: string | undefined;
-		let decryptToastId: string | undefined;
-
-		try {
-			setDecryptTokenStatus(t("balance.status.fetching"));
-			const signer = await getSigner();
-			const userAddr = await signer.getAddress();
-			// Discover token from OnlyFHEn
-			fetchToastId = toast.loading(t("balance.loading.fetchingBalance"));
-			if (!contractAddress) throw new Error(t("common.errors.missingContract"));
-			const service = await onlyfhen(contractAddress);
-			const tokenAddr: string = await service.tokenAddress();
-			const token = await service.token(false);
-			const handle: string = await token.confidentialBalanceOf(userAddr);
-			toast.success(t("balance.loading.balanceRetrieved"), {
-				id: fetchToastId,
-			});
-
-			decryptToastId = toast.loading(t("balance.loading.decryptingBalance"), {
-				duration: 10000,
-			});
-			setDecryptTokenStatus(t("balance.status.submit"));
-			const result = await decrypt([{ handle, contractAddress: tokenAddr }]);
-			const value = result[handle];
-			setDecryptedTokenBalance(String(value));
-			setDecryptTokenStatus(t("balance.status.success"));
-			toast.success(t("balance.loading.decryptionSuccess"), {
-				id: decryptToastId,
-				duration: 5000,
-			});
-		} catch (error: any) {
-			console.error(error);
-			if (fetchToastId) toast.dismiss(fetchToastId);
-			if (decryptToastId) toast.dismiss(decryptToastId);
-
-			const errorKey = getTransactionErrorI18nKey(error);
-			const userMessage = t(errorKey);
-			setDecryptTokenStatus(userMessage);
-			toast.error(userMessage, { duration: 6000 });
-		} finally {
-			setIsDecryptingToken(false);
-		}
-	};
-
 	const onSubmit = async (e: FormEvent) => {
 		e.preventDefault();
 		setStatus("");
@@ -224,6 +173,9 @@ export default function Tip() {
 				id: confirmToastId,
 				duration: 5000,
 			});
+
+			// Refetch balance after successful tip
+			refetchBalance();
 		} catch (err: any) {
 			console.error(err);
 
@@ -244,8 +196,6 @@ export default function Tip() {
 
 	return (
 		<main className="min-h-dvh bg-background">
-			<Navbar />
-
 			<Hero
 				badge={t("tip.heroBadge")}
 				title={t("tip.heroTitle")}
@@ -337,54 +287,35 @@ export default function Tip() {
 										<Button
 											type="button"
 											variant="ghost"
-											onClick={() => setAmount(String(decryptedTokenBalance))}
-											disabled={!decryptedTokenBalance}
+											onClick={() => setAmount(String(globalBalance))}
+											disabled={!globalBalance}
 										>
 											{t("common.max")}
 										</Button>
 									</div>
-									{decryptedTokenBalance && (
+									{globalBalance && (
 										<p className="text-xs text-muted-foreground">
 											{t("withdraw.helper.available", {
-												value: decryptedTokenBalance,
+												value: globalBalance,
 											})}
 										</p>
 									)}
 								</div>
-								<div className="flex gap-2">
-									<Button
-										type="submit"
-										size="lg"
-										disabled={isLoading || !creator}
-										className="flex-1"
-									>
-										{isLoading ? (
-											<>
-												<Loader2 className="size-5 animate-spin" />
-												{t("common.loading.processing")}
-											</>
-										) : (
-											t("tip.buttons.submit")
-										)}
-									</Button>
-									<Button
-										type="button"
-										size="lg"
-										variant="outline"
-										onClick={requireWallet(handleDecryptToken)}
-										disabled={isDecryptingToken}
-										className="flex-1"
-									>
-										{isDecryptingToken ? (
-											<>
-												<Loader2 className="size-5 animate-spin" />
-												{t("common.loading.decrypting")}
-											</>
-										) : (
-											t("dashboard.balanceCard.button")
-										)}
-									</Button>
-								</div>
+								<Button
+									type="submit"
+									size="lg"
+									disabled={isLoading || !creator}
+									className="w-full"
+								>
+									{isLoading ? (
+										<>
+											<Loader2 className="size-5 animate-spin" />
+											{t("common.loading.processing")}
+										</>
+									) : (
+										t("tip.buttons.submit")
+									)}
+								</Button>
 								{txHash && (
 									<Alert>
 										<AlertDescription>

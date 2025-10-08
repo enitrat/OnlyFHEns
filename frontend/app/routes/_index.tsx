@@ -1,6 +1,5 @@
 import type { Route } from "./+types/_index";
 import { Link } from "react-router";
-import { Navbar } from "~/components/navbar";
 import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
 import { useTranslation } from "~/lib/i18n";
@@ -56,8 +55,6 @@ export default function Index() {
 
 	return (
 		<main className="min-h-dvh bg-background">
-			<Navbar />
-
 			<Hero
 				title={
 					<h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black text-white leading-tight tracking-tight">

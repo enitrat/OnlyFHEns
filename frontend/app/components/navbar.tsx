@@ -25,7 +25,7 @@ import {
 } from "lucide-react";
 import * as React from "react";
 import { useTranslation } from "~/lib/i18n";
-import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { CustomConnectButton } from "~/components/CustomConnectButton";
 import { useAccount } from "wagmi";
 import { getContract } from "~/lib/eth";
 import OnlyFHEnArtifact from "../../../artifacts/contracts/OnlyFHEn.sol/OnlyFHEn.json";
@@ -185,7 +185,7 @@ export function Navbar() {
 					{/* Right - Wallet & Language */}
 					<div className="flex items-center gap-2 md:gap-3 shrink-0">
 						<div className="hidden sm:block">
-							<ConnectButton chainStatus="icon" showBalance={false} />
+							<CustomConnectButton />
 						</div>
 						<DropdownMenu>
 							<DropdownMenuTrigger asChild>
@@ -283,7 +283,7 @@ export function Navbar() {
 							<span>{t("navbar.mint")}</span>
 						</Link>
 						<div className="sm:hidden pt-2 border-t border-border/60">
-							<ConnectButton chainStatus="icon" showBalance={false} />
+							<CustomConnectButton />
 						</div>
 					</nav>
 				</div>
